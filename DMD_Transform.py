@@ -172,6 +172,14 @@ plt.show()
 mask_camera = imageio.imread('Mask_Camera1.tif')
 mask_camera = np.array(mask_camera)
 
+# Is the mask from an ROI?
+offsets = (0,0)
+if mask_camera.shape != (2304,2304):
+    # If so, what are the offsets of this ROI
+    # 20210707 Current progress. TODO: check ROI in LabVIEW
+    offsets[0] = 640
+    offsets[1] = 640
+
 # Find coordinates of landmarks
 mask_vectors = find_all_max(mask_camera)
 
