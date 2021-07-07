@@ -149,7 +149,8 @@ plt.legend()
 plt.show()
 
 # Open mask from Camera
-mask_camera = imageio.imread('Mask_Camera1.tif')
+# mask_camera = imageio.imread('Mask_Camera1.tif')
+mask_camera = imageio.imread('C1.tif')
 mask_camera = np.array(mask_camera)
 
 # Find coordinates of landmarks
@@ -179,15 +180,14 @@ if not flip_horizontal(rotated_vectors, dmd_size_x):
 
 # Create the DMD mask
 DMD_mask = 255 * np.ones((dmd_size_y, dmd_size_x))
-print(DMD_mask.shape)
 
 for ii in range(0, rotated_vectors.shape[0]):
     if rotated_vectors[ii, 0] > -1 and rotated_vectors[ii, 0] < dmd_size_x:
         if rotated_vectors[ii, 1] > -1 and rotated_vectors[ii, 1] < dmd_size_y:
-            DMD_mask[round(rotated_vectors[ii, 1]),
-                     round(rotated_vectors[ii, 0])] = 0
+            DMD_mask[int(round(rotated_vectors[ii, 1])),
+                     int(round(rotated_vectors[ii, 0]))] = 0
 
-imageio.imwrite('DMD_Mask.png', DMD_mask)
+imageio.imwrite('DMD_Mask.png', DMD_mask.astype(np.uint8))
 
 # Display mask from Camera
 plt.figure()
