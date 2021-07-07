@@ -5,6 +5,8 @@ Created on Mon Jun 21 11:41:34 2021
 @author: David Nguyen
 """
 
+
+# Modules
 import imageio
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,69 +15,87 @@ from math import cos, sin, sqrt
 from sklearn.metrics import mean_squared_error
 
 
-# Transform mask into array of coordinate vectors to the landmarks
+# Takes an array <mask> (image) as a mask in camera space (2304 x 2304) and
+# transform each maximum (sort of binarization) pixel into a 2D vector of X, Y
+# coordinates (in camera space)
 def find_all_max(mask):
+    # Find the size of the mask (limited to 2304 x 2304 currently)
     (size_x, size_y) = mask.shape
     
+    # Determine the maximum value in the mask
     mask_value = np.amax(mask)
     
-    mask_vectors = []
+    # Initialize the output 2D vector list 
+    vector_count = 0
+    mask_vectors = np.zeros((np.count_nonzero(mask == mask_value),2))
     
+    # Find, and store all vectors corresponding to a maximum in the mask
     for ii in range(0, size_x):
         for jj in range(0, size_y):
             if mask[ii, jj] == mask_value:
-                mask_vectors.append([jj, ii])
-                
-    mask_vectors = np.array(mask_vectors)
+                # Notice the reverse coordinates here for consistancy with
+                # how Python treats the arrays
+                mask_vectors[vector_count,0] = jj
+                mask_vectors[vector_count,1] = ii
+                vector_count += 1
     
+    # Return a 2D vector array of the mask in camera space
     return mask_vectors
 
-# RMSE comparison of reference letter R with a rotated camera version
+# Takes a reference <ref> of (nn) vectors and compare it to another set <cam>
+# rotated by an angle <theta>. Returns the RMSE between the two sets of
+# vectors. This is used to optimize the angle <theta> which minize the RMSE
+# between the two models
 def letter_rotation(theta, ref, cam):
-    # Number of points
+    # Number of vectors composing the reference model
     nn = ref.shape[0]
     
-    # Initialization
+    # Initialize an array for the rotated <cam> model
     rotated_cam = np.zeros((nn,2))
     
     # Rotation matrix
     rotation_matrix = np.array([[cos(theta), -sin(theta)],
                                 [sin(theta), cos(theta)]])
     
-    # Apply rotation
+    # Apply rotation (there might be a better algebraic way of computing
+    # the dot-product for each vector...)
     for ii in range(0, nn):
         rotated_cam[ii,:] = np.dot(rotation_matrix, cam[ii,:])
     
-    # Mean squared error
+    # Calculate the mean squared error from sklearn.metrics
     MSE = mean_squared_error(ref, rotated_cam)
     
-    # Root mean squared error (smoother function, better for optimization)
+    # Calculate the square root of the  MSE
+    # (smoother function, better for optimization)
     RMSE = sqrt(MSE)
     
+    # Return the RMSE
     return RMSE
 
 
-# Horizontal flip 
-def flip_horizontal(points, grid_size_x):
-    # Number of landmarks
-    number_of_points = points.shape[0]
+# Horizontal flip of a 2D vector list <vectors> based on a <grid_size_x>
+# THIS FLIP IS APPLIED IN PLACE => <vectors> is directly modified!
+def flip_horizontal(vectors, grid_size_x):
+    # Number of vectors
+    number_of_vectors = vectors.shape[0]
     
-    # Apply the flip in place
-    for ii in range(number_of_points):
-        points[ii, 0] = abs(points[ii, 0] - grid_size_x)
+    # Apply the flip in place!
+    for ii in range(number_of_vectors):
+        vectors[ii, 0] = abs(vectors[ii, 0] - grid_size_x)
     
+    # Return true if successful (no error trapping)
     return True
 
 
 # Import landmarks for reference letter R on DMD
-dmd_size_x = 1920
-dmd_size_y = 1200
+dmd_size_x = 1920 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+dmd_size_y = 1200 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 dmd_letter_R = np.genfromtxt('DMD_R_5Points.csv',delimiter=',',
                              skip_header=1)
 
 # Import landmarks for reference letter R as seen on Camera 1
-camera_size_x = 2304
-camera_size_y = 2304
+camera_size_x = 2304 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+camera_size_y = 2304 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 camera_letter_R = np.genfromtxt('Camera1_R_5Points.csv',delimiter=',',
                                 skip_header=1)
 
@@ -141,8 +161,8 @@ plt.scatter(dmd_letter_R[:,0], dmd_letter_R[:,1],
 plt.scatter(scaled_camera_R[:,0],scaled_camera_R[:,1],
             label='Camera landmarks with transform', s=50, facecolors='none',
             edgecolors='r')
-plt.xlim((0, dmd_size_x))
-plt.ylim((0, dmd_size_y))
+plt.xlim((750, 1250)) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+plt.ylim((400, 650)) # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 plt.gca().invert_yaxis()
 plt.grid()
 plt.legend()
@@ -198,13 +218,3 @@ plt.show()
 plt.figure()
 plt.imshow(DMD_mask)
 plt.show()
-
-# Plot reference scatter points as seen on Camera 1
-# plt.figure()
-# plt.title('Reference letter R on camera (landmarks)')
-# plt.scatter(camera_letter_R[:,0], camera_letter_R[:,1])
-# plt.xlim((0, camera_size_x))
-# plt.ylim((0, camera_size_y))
-# plt.gca().invert_yaxis()
-# plt.grid()
-# plt.show()
