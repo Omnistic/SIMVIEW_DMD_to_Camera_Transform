@@ -149,8 +149,7 @@ plt.legend()
 plt.show()
 
 # Open mask from Camera
-# mask_camera = imageio.imread('Mask_Camera1.tif')
-mask_camera = imageio.imread('C1.tif')
+mask_camera = imageio.imread('Mask_Camera1.tif')
 mask_camera = np.array(mask_camera)
 
 # Find coordinates of landmarks
