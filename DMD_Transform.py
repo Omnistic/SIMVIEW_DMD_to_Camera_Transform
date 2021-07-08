@@ -15,6 +15,55 @@ from math import cos, sin, sqrt
 from sklearn.metrics import mean_squared_error
 
 
+# Make a point bigger (1x1 to a 5x5 circle) at specified coordinates in a DMD mask
+def expand_point(mask, x_coord, y_coord):
+    mask[y_coord-1:y_coord+2, x_coord-1:x_coord+2] = 0
+    mask[y_coord, x_coord-2:x_coord+3] = 0
+    mask[y_coord-2:y_coord+3, x_coord] = 0
+    
+    # Return a success flag
+    return True
+
+
+# Create a reference mask of size 1920 x 1200 (no error trapping) for
+# calibrating the DMD (feature under development)
+def create_ref_mask(size_x, size_y):
+    # Initialize mask template (reverse coordinates to comply with Python)
+    reference_mask = 255 * np.ones((size_y, size_x))
+    
+    # Number of points along one dimension (specify an odd number)
+    n_points = 15
+    
+    # Spacing between points
+    spacing = 25
+    
+    # Grid center
+    center_x = size_x/2 - 1
+    center_y = size_y/2 - 1
+    
+    # Iterate over the points
+    for xx in range(n_points):
+        for yy in range(n_points):
+            x_coord = int(spacing * (xx - (n_points - 1) / 2) + center_x)
+            y_coord = int(spacing * (yy - (n_points - 1) / 2) + center_y)
+            
+            # Expand the points to a larger circle in 3 locations
+            expand_flag = x_coord == center_x and y_coord == center_y
+            expand_flag = expand_flag or (xx == 0 and yy == 0)
+            expand_flag = expand_flag or (xx == 0 and yy == n_points-1)
+            
+            if expand_flag:
+                expand_point(reference_mask, x_coord, y_coord)
+            else:
+                reference_mask[y_coord, x_coord] = 0
+    
+    # Write the DMD reference mask to a PNG file    
+    imageio.imwrite('DMD_Reference_Mask.png', reference_mask.astype(np.uint8))
+    
+    # Return a success flag
+    return True
+
+
 # Takes an array <mask> (image) as a mask in camera space (2304 x 2304) and
 # transform each maximum (sort of binarization) pixel into a 2D vector of X, Y
 # coordinates (in camera space)
@@ -41,6 +90,7 @@ def find_all_max(mask):
     
     # Return a 2D vector array of the mask in camera space
     return mask_vectors
+
 
 # Takes a reference <ref> of (nn) vectors and compare it to another set <cam>
 # rotated by an angle <theta>. Returns the RMSE between the two sets of
@@ -92,6 +142,12 @@ dmd_size_x = 1920 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 dmd_size_y = 1200 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 dmd_letter_R = np.genfromtxt('DMD_R_5Points.csv',delimiter=',',
                              skip_header=1)
+
+# Optionally create a DMD reference mask
+create_reference = False
+
+if not create_ref_mask(dmd_size_x, dmd_size_y) and create_reference:
+    print('Error: something went wrong when creating the DMD reference mask.')
 
 # Import landmarks for reference letter R as seen on Camera 1
 camera_size_x = 2304 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -169,19 +225,25 @@ plt.legend()
 plt.show()
 
 # Open mask from Camera
-mask_camera = imageio.imread('Mask_Camera1.tif')
+mask_camera = imageio.imread('Mask_Camera1_ROI.tif')
 mask_camera = np.array(mask_camera)
 
 # Is the mask from an ROI?
-offsets = (0,0)
+offsets = np.zeros((1,2))
 if mask_camera.shape != (2304,2304):
     # If so, what are the offsets of this ROI
     # 20210707 Current progress. TODO: check ROI in LabVIEW
-    offsets[0] = 640
-    offsets[1] = 640
-
+    offsets[0,0] = 640 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    offsets[0,1] = 640 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    
+    # Minus one as Python arrays start at zero
+    offsets -= 1
+    
 # Find coordinates of landmarks
 mask_vectors = find_all_max(mask_camera)
+
+# Apply ROI if necessary (by default, offsets is a zero-vector)
+mask_vectors = np.add(mask_vectors, offsets)
 
 # Remove distance to center in Camera
 mask_vectors[:,0] = mask_vectors[:,0] - np.repeat(center_x[0],

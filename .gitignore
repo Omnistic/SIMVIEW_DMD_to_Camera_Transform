@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 Mask_Camera1.tif
 DMD_Mask.png
+DMD_Reference_Mask.png
+Mask_Camera1_ROI.tif
