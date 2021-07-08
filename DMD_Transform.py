@@ -15,6 +15,11 @@ from math import cos, sin, sqrt
 from sklearn.metrics import mean_squared_error
 
 
+# Detect reference mask on camera (feature under development)
+def detect_reference(camera_image):
+    return True
+
+
 # Make a point bigger (1x1 to a 5x5 circle) at specified coordinates in a DMD mask
 def expand_point(mask, x_coord, y_coord):
     mask[y_coord-1:y_coord+2, x_coord-1:x_coord+2] = 0
@@ -50,7 +55,7 @@ def create_ref_mask(size_x, size_y):
             # Expand the points to a larger circle in 3 locations
             expand_flag = x_coord == center_x and y_coord == center_y
             expand_flag = expand_flag or (xx == 0 and yy == 0)
-            expand_flag = expand_flag or (xx == 0 and yy == n_points-1)
+            expand_flag = expand_flag or (xx == 0 and yy == (n_points-1) / 2)
             
             if expand_flag:
                 expand_point(reference_mask, x_coord, y_coord)
