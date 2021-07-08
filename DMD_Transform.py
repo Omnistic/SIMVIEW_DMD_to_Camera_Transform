@@ -20,12 +20,21 @@ def detect_reference(camera_image):
     return True
 
 
-# Make a point bigger (1x1 to a 5x5 circle) at specified coordinates in a DMD mask
-def expand_point(mask, x_coord, y_coord):
-    mask[y_coord-1:y_coord+2, x_coord-1:x_coord+2] = 0
-    mask[y_coord, x_coord-2:x_coord+3] = 0
-    mask[y_coord-2:y_coord+3, x_coord] = 0
-    
+# Make a point into a circle at specified coordinates in a DMD mask
+# The default size is for the grid, and the alternate size is for
+# the three landmarks
+def expand_point(mask, x_coord, y_coord, landmark=False):
+    if landmark:
+        mask[y_coord-2:y_coord+3, x_coord-2:x_coord+3] = 0
+        mask[y_coord-1:y_coord+2, x_coord-3:x_coord+4] = 0
+        mask[y_coord-3:y_coord+4, x_coord-1:x_coord+2] = 0
+        mask[y_coord-4:y_coord+5, x_coord] = 0 
+        mask[y_coord, x_coord-4:x_coord+5] = 0                 
+    else:
+        mask[y_coord-1:y_coord+2, x_coord-1:x_coord+2] = 0
+        mask[y_coord, x_coord-2:x_coord+3] = 0
+        mask[y_coord-2:y_coord+3, x_coord] = 0
+        
     # Return a success flag
     return True
 
@@ -58,9 +67,9 @@ def create_ref_mask(size_x, size_y):
             expand_flag = expand_flag or (xx == 0 and yy == (n_points-1) / 2)
             
             if expand_flag:
-                expand_point(reference_mask, x_coord, y_coord)
+                expand_point(reference_mask, x_coord, y_coord, landmark=True)
             else:
-                reference_mask[y_coord, x_coord] = 0
+                expand_point(reference_mask, x_coord, y_coord)
     
     # Write the DMD reference mask to a PNG file    
     imageio.imwrite('DMD_Reference_Mask.png', reference_mask.astype(np.uint8))
